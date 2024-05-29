@@ -1,7 +1,9 @@
-import mongoose, { Document, Model, Schema } from "mongoose";
+require("dotenv").config();
+import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import mongoose, { Document, Model, Schema } from "mongoose";
 
-const emailregex: RegExp =
+const emailRegex: RegExp =
   /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
 export interface IUSER extends Document {
@@ -16,6 +18,8 @@ export interface IUSER extends Document {
   isVerified: boolean;
   courses: Array<{ courseId: string }>;
   comparePassword: (password: string) => Promise<boolean>;
+  authAccessToken: () => string;
+  authRefreshToken: () => string;
 }
 
 const userSchema: Schema<IUSER> = new mongoose.Schema(
@@ -29,7 +33,7 @@ const userSchema: Schema<IUSER> = new mongoose.Schema(
       required: [true, "Please enter your email"],
       validate: {
         validator: function (value: string) {
-          return emailregex.test(value);
+          return emailRegex.test(value);
         },
         message: "Please enter a valid email",
       },
@@ -58,6 +62,7 @@ const userSchema: Schema<IUSER> = new mongoose.Schema(
   { timestamps: true }
 );
 
+// <---------------------------------- Pre Functions that will run before saving data --------------------------------------------->
 // hash password bfore saving
 userSchema.pre<IUSER>("save", async function (next) {
   if (!this.isModified("password")) {
@@ -66,6 +71,17 @@ userSchema.pre<IUSER>("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
+
+// <------------------------------------ Custom Methods ----------------------------------------->
+// authAccessToken
+userSchema.methods.authAccessToken = function () {
+  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "");
+};
+
+// authRefreshToken
+userSchema.methods.authRefreshToken = function () {
+  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || "");
+};
 
 // compare password
 userSchema.methods.comparePassword = async function (
