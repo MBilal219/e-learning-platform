@@ -75,12 +75,16 @@ userSchema.pre<IUSER>("save", async function (next) {
 // <------------------------------------ Custom Methods ----------------------------------------->
 // authAccessToken
 userSchema.methods.authAccessToken = function () {
-  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "");
+  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "", {
+    expiresIn: "5m",
+  });
 };
 
 // authRefreshToken
 userSchema.methods.authRefreshToken = function () {
-  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || "");
+  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || "", {
+    expiresIn: "7d",
+  });
 };
 
 // compare password
