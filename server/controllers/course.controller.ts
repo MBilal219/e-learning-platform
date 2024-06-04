@@ -9,6 +9,7 @@ import courseModel from "../models/course.model";
 import { redis } from "../connection/redis";
 import mongoose from "mongoose";
 import sendMail from "../utils/SendMail";
+import NotificationModel from "../models/notification.model";
 
 // <----------------------- Interfaces --------------------------->
 
@@ -202,6 +203,13 @@ export const addQuestions = AsyncErrors(
       courseContent.questions.push(newQuestion);
 
       await course?.save();
+
+      await NotificationModel.create({
+        userId: req.user?._id,
+        title: "New Question Received",
+        message: `You have a new question in ${courseContent?.title}`,
+      });
+
       res.status(200).json({
         success: true,
         course,
@@ -249,7 +257,11 @@ export const addAnswer = AsyncErrors(
 
       await course?.save();
       if (req.user?._id === question.user._id) {
-        // todo send notification
+        await NotificationModel.create({
+          userId: req.user?._id,
+          title: "New Question reply Received",
+          message: `You have a new question reply in ${courseContent?.title}`,
+        });
       } else {
         const data = {
           name: question.user.name,
@@ -320,7 +332,10 @@ export const addReview = AsyncErrors(
         message: `${req.user?.name} has gicen a review in ${course?.name}`,
       };
 
-      // todo create notification
+      await NotificationModel.create({
+        userId: req.user?._id,
+        ...notification,
+      });
 
       res.status(200).json({ success: true, course });
     } catch (err: any) {
